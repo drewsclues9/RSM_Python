@@ -8,24 +8,17 @@ from selenium.common.exceptions import NoSuchElementException, WebDriverExceptio
 import pandas as pd
 import time
 
-#input file
-list = pd.read_csv('C:/Users/E075882/OneDrive - RSM/All Data/Client/python/Webscraping/Freight quotes/new.csv')
-
+list = pd.read_csv('C:/Users/E075882/OneDrive - RSM/All Data/Client/python/Webscraping/Freight quotes/data.csv')
 
 options = Options()
 options.add_argument("--headless")
 
+
+
 df = pd.DataFrame(columns = ['id', 'item', 'price'])
 i = 0
-
-for index,row in list.iterrows():
+while i < len(list):
    try:
-      
-      
-      myProxy = proxies[i]
-      ip, port = myProxy.split(':') 
-
-      
 
       driver = webdriver.Firefox(options=options)
       driver.get("https://www.freightquote.com/book/#/single-page-quote")
@@ -34,7 +27,6 @@ for index,row in list.iterrows():
 
       WebDriverWait(driver,60).until(EC.visibility_of_element_located((By.XPATH, '//input[@id="Ltl"]'))).click()
       time.sleep(.5)
-
 
       if driver.find_element(By.XPATH, '//button[@id="truste-consent-button"]'):
          driver.find_element(By.XPATH, '//button[@id="truste-consent-button"]').click()
@@ -70,7 +62,7 @@ for index,row in list.iterrows():
       time.sleep(.5)
       
    
-
+     
 
       btn[1].click()
       time.sleep(.5)
@@ -96,7 +88,7 @@ for index,row in list.iterrows():
       btn = driver.find_element(By.XPATH, '//select[@name="items[0].packageType"]')
       btn.send_keys(list['Packaging'].values[i])
       time.sleep(.5)
-
+      #driver.execute_script("window.scrollTo(0,document.body.scrollHeight)")
       time.sleep(.5)
       btn = driver.find_element(By.XPATH, '//input[@name="items[0].height"]')
       btn.clear()
@@ -163,12 +155,12 @@ for index,row in list.iterrows():
       time.sleep(5)
       continue
 
+
    except ElementNotInteractableException:
       print("Element not interactable exception")
       driver.quit()
       time.sleep(5)
       continue
-  
 
 print(df)
 df.to_csv('out2.csv')
