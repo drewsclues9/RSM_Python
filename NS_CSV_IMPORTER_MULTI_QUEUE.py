@@ -49,8 +49,8 @@ options = Options()
 options.binary_location = r'C:\Users\arichards\AppData\Local\Mozilla Firefox\firefox.exe'
 
 
-
-driver = webdriver.Firefox(service=Service(GeckoDriverManager().install()), options=options)
+#driver = webdriver.Firefox(service=Service(GeckoDriverManager().install()), options=options) Use this if driver is not automatically found
+driver = webdriver.Firefox(options=options)
 
 driver.get(savedimport)
 
