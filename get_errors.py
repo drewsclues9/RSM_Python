@@ -14,11 +14,6 @@ from os import listdir
 #THIS SCRIPT IS INTENDED TO FIND ERROR FILES FOR SEQUENTIALLY NAMED FILES. DUPLICATE NAMED FILES MAY CAUSE ISSUES
 #DATE RANGE MAY HAVE TO BE MANUALLY SET BEFORE RUNNING SCRIPT
 
-#figure out logging
-#figure out date filter by URL
-#figure out only pulling files by naming convention
-#figure out sorting files after download
-
 user = '' #case sensitive
 url = ''
 
