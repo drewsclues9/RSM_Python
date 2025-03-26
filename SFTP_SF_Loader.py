@@ -5,9 +5,9 @@ import os
 
 # Snowflake connection parameters
 SNOWFLAKE_CONFIG = {
-    "user": "your_user",
-    "password": "your_password",
-    "account": "your_account.us-east-1",  
+    "user": "user",
+    "password": "pass",
+    "account": "example.us-east-1",  
     "warehouse": "WH",
     "database": "DB",
     "schema": "SCHEMA",
@@ -64,6 +64,8 @@ for index, row in mapdf.iterrows():
             df = df.astype(str)
             #remove leading and trailing whitespace from field names
             df.columns = df.columns.str.strip()
+            #remove whitespace
+            df = df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
             #CREATE TABLE IF NOT EXISTS
             if i == 0:
                 columns = [f'"{col}" VARCHAR(99999)' for col in df.columns] 
