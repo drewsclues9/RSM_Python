@@ -2,16 +2,42 @@ import snowflake.connector
 from snowflake.connector.pandas_tools import write_pandas
 import pandas as pd
 import os
+from azure.identity import ClientSecretCredential
+from azure.keyvault.secrets import SecretClient
+from dotenv import load_dotenv
+
+load_dotenv('C:/Users/E075882/OneDrive - RSM/All Data/Client/Galaxy/python/keys.env')
+# Load credentials from environment variables
+tenant_id = os.getenv("AZURE_TENANT_ID")
+client_id = os.getenv("AZURE_CLIENT_ID")
+client_secret = os.getenv("AZURE_CLIENT_SECRET")
+user = os.getenv("USER")
+account = os.getenv("ACCOUNT")
+secret_name = os.getenv("SECRET_NAME")
+vault_url = os.getenv("VAULT_URL")
+# Ensure that environment variables are set
+if not all([tenant_id, client_id, client_secret, user, account, secret_name, vault_url]):
+    raise ValueError("Missing values in environment variables!")
+
+# Authenticate using ClientSecretCredential
+credential = ClientSecretCredential(tenant_id, client_id, client_secret)
+
+# Create a SecretClient instance
+client = SecretClient(vault_url=vault_url, credential=credential)
+
+# Retrieve the secret value
+retrieved_secret = client.get_secret(secret_name)
+
 
 # Snowflake connection parameters
 SNOWFLAKE_CONFIG = {
-    "user": "user",
-    "password": "pass",
-    "account": "example.us-east-1",  
-    "warehouse": "WH",
-    "database": "DB",
-    "schema": "SCHEMA",
-    "role": "ROLE"
+    "user": user,
+    "password": retrieved_secret.value,
+    "account": account,  
+    "warehouse": "COMPUTE_WH",
+    "database": "GALAXY",
+    "schema": "MIGRATION",
+    "role": "SERVICE_MIGR"
 }
 # Connect to Snowflake
 conn = snowflake.connector.connect(**SNOWFLAKE_CONFIG)
