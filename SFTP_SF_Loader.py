@@ -5,6 +5,7 @@ import os
 from azure.identity import ClientSecretCredential
 from azure.keyvault.secrets import SecretClient
 from dotenv import load_dotenv
+import numpy as np
 
 load_dotenv('C:/Users/E075882/OneDrive - RSM/All Data/Client/Galaxy/python/keys.env')
 # Load credentials from environment variables
@@ -82,7 +83,7 @@ for index, row in mapdf.iterrows():
 
             if '.XLSX' in filename.upper():
                 # Read the CSV into a pandas DataFrame
-                df = pd.read_excel(csv_file_path)
+                df = pd.read_excel(csv_file_path, dtype=str)
                 #Drop unnamed columns
                 df = df.loc[:, ~df.columns.str.contains("^Unnamed")]
 
@@ -92,6 +93,10 @@ for index, row in mapdf.iterrows():
             df.columns = df.columns.str.strip()
             #remove whitespace
             df = df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
+            # Convert possible string 'nan' values to real NaN
+            df.replace(["nan", "NaN", "None"], np.nan, inplace=True)
+            # Fill NaN with an empty string (or another default value)
+            df.fillna("", inplace=True) 
             #CREATE TABLE IF NOT EXISTS
             if i == 0:
                 columns = [f'"{col}" VARCHAR(99999)' for col in df.columns] 
