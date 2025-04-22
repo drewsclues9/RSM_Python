@@ -6,6 +6,8 @@ from azure.identity import ClientSecretCredential
 from azure.keyvault.secrets import SecretClient
 from dotenv import load_dotenv
 import numpy as np
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.backends import default_backend
 
 load_dotenv('C:/Users/E075882/OneDrive - RSM/All Data/Client/Galaxy/python/keys.env')
 # Load credentials from environment variables
@@ -26,19 +28,33 @@ credential = ClientSecretCredential(tenant_id, client_id, client_secret)
 # Create a SecretClient instance
 client = SecretClient(vault_url=vault_url, credential=credential)
 
-# Retrieve the secret value
-retrieved_secret = client.get_secret(secret_name)
+private_key_path = 'C:/Users/E075882/OneDrive - RSM/All Data/Client/Galaxy/python/private_key.pem'
+
+with open(private_key_path, "rb") as key_file:
+    private_key = serialization.load_pem_private_key(
+        key_file.read(),
+        password=None,
+        backend=default_backend()
+    )
+
+# Convert to PEM format required by connector
+private_key_bytes = private_key.private_bytes(
+    encoding=serialization.Encoding.DER,
+    format=serialization.PrivateFormat.PKCS8,
+    encryption_algorithm=serialization.NoEncryption()
+)
+
 
 
 # Snowflake connection parameters
 SNOWFLAKE_CONFIG = {
     "user": user,
-    "password": retrieved_secret.value,
+    "private_key": private_key_bytes,
     "account": account,  
     "warehouse": "COMPUTE_WH",
     "database": "GALAXY",
     "schema": "MIGRATION",
-    "role": "SERVICE_MIGR"
+    "role": "SERVICE_MIGRATION"
 }
 # Connect to Snowflake
 conn = snowflake.connector.connect(**SNOWFLAKE_CONFIG)
@@ -73,14 +89,27 @@ for index, row in mapdf.iterrows():
             csv_file_path = os.path.join(folder_path, filename)
 
             if '.TXT' in filename.upper():
-                df = pd.read_csv(csv_file_path, delimiter="|", skiprows=3, dtype=str)
+                df = pd.read_csv(csv_file_path, delimiter="|", skiprows=3, dtype=str) #add this encoding if unicode error - encoding="latin-1"
                 df.columns = df.columns.str.strip()  # Clean column names
                 df = df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
                 #Drop unnamed columns
                 df = df.loc[:, ~df.columns.str.contains("^Unnamed")]
                 # Remove the first row (index 0) after the headers
                 df = df.iloc[1:].reset_index(drop=True)
-
+            if '.CSV' in filename.upper():
+                chunk_size = 100_000  # adjust as needed
+                cleaned_chunks = []
+                for chunk in pd.read_csv(csv_file_path, dtype=str, chunksize=chunk_size):
+                # Strip column names
+                    chunk.columns = chunk.columns.str.strip()
+                # Strip string values only for object columns
+                    for col in chunk.select_dtypes(include="object").columns:
+                        chunk[col] = chunk[col].str.strip()
+                # Remove unnamed columns
+                    chunk = chunk.loc[:, ~chunk.columns.str.contains("^Unnamed")]
+                    cleaned_chunks.append(chunk)
+                # Optionally combine all chunks into one DataFrame (if your system can handle it)
+                    df = pd.concat(cleaned_chunks, ignore_index=True)                  
             if '.XLSX' in filename.upper():
                 # Read the CSV into a pandas DataFrame
                 df = pd.read_excel(csv_file_path, dtype=str)
