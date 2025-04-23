@@ -119,9 +119,7 @@ for index, row in mapdf.iterrows():
             # Force all columns to STRING
             df = df.astype(str)
             #remove leading and trailing whitespace from field names
-            df.columns = df.columns.str.strip()
-            #remove whitespace
-            df = df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
+            #df.columns = df.columns.str.strip()
             # Convert possible string 'nan' values to real NaN
             df.replace(["nan", "NaN", "None"], np.nan, inplace=True)
             # Fill NaN with an empty string (or another default value)
