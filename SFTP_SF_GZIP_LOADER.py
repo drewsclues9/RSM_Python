@@ -87,6 +87,7 @@ for index, row in mapdf.iterrows():
 
     for filename in os.listdir(folder_path):
         if sap_table in filename:
+            
             print(f"Processing: {filename}")
             csv_file_path = os.path.join(folder_path, filename)
             quoted_file_path = f"'file://{csv_file_path}'"
@@ -106,6 +107,7 @@ for index, row in mapdf.iterrows():
                 cur.execute(f"""
                     COPY INTO {table_name}
                     FROM {stage_name}
+                    FILES = ('{filename}')
                     FILE_FORMAT = (TYPE = 'CSV' FIELD_OPTIONALLY_ENCLOSED_BY = '\"' SKIP_HEADER = 1 TRIM_SPACE = TRUE)
                     ON_ERROR = 'CONTINUE'
                 """)
