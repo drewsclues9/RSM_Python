@@ -1,0 +1,50 @@
+CREATE OR REPLACE PROCEDURE GALAXY.MIGRATION.DELTA_MERGE(src_tbl VARCHAR, tgt_tbl VARCHAR, run_dt VARCHAR, last_mod_dt VARCHAR, keys VARCHAR)
+RETURNS VARCHAR
+LANGUAGE JAVASCRIPT
+EXECUTE AS CALLER
+AS 
+$$
+var keyCols = KEYS.split(',').map(k => k.trim());
+var on_clause = keyCols.map(k => `T.${k} = S.${k}`).join(' AND ');
+
+var sql = `select LISTAGG(CONCAT('T."', COLUMN_NAME, '"=S."', COLUMN_NAME, '"'), ',') FROM information_schema.columns where table_name = '${TGT_TBL}'`
+var stmt0 = snowflake.createStatement({sqlText: sql});
+
+var rs = stmt0.execute();
+
+var update_list = "";
+if (rs.next()) {
+    update_list = rs.getColumnValue(1);  // get the LISTAGG result
+}
+
+var val_stmt = `select LISTAGG(CONCAT('"',COLUMN_NAME, '"'), ',')  WITHIN GROUP (ORDER BY ORDINAL_POSITION) FROM information_schema.columns where table_name = '${TGT_TBL}'`
+var stmt01 = snowflake.createStatement({sqlText: val_stmt});
+var vs = stmt01.execute();
+
+var val_list = "";
+if (vs.next()) {
+    val_list = vs.getColumnValue(1);  // get the LISTAGG result
+}
+
+
+var ins_stmt = `select LISTAGG(CONCAT('s."', COLUMN_NAME, '"'), ',')  WITHIN GROUP (ORDER BY ORDINAL_POSITION) FROM information_schema.columns where table_name = '${TGT_TBL}'`
+var stmt02 = snowflake.createStatement({sqlText: ins_stmt});
+var bs = stmt02.execute();
+
+var ins_list = "";
+if (bs.next()) {
+    ins_list = bs.getColumnValue(1);  // get the LISTAGG result
+}
+
+var sql_command = `
+    MERGE INTO ${TGT_TBL} t USING (SELECT * FROM ${SRC_TBL} WHERE ${LAST_MOD_DT} >= ${RUN_DT}) s
+   ON ${on_clause}
+   WHEN MATCHED THEN UPDATE SET ${update_list}
+   WHEN NOT MATCHED THEN INSERT (${val_list}) VALUES (${ins_list})`
+;
+
+var stmt1 = snowflake.createStatement({sqlText: sql_command});
+
+
+stmt1.execute()
+$$;
